@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RMQ Demo Frontend</title>
+</head>
+<body>
+  <h1>RMQ Demo</h1>
+  <button id="load-btn">Load Message</button>
+  <div id="output"></div>
+
+  <script>
+    const button = document.getElementById('load-btn');
+    const output = document.getElementById('output');
+
+    button.addEventListener('click', async () => {
+      output.textContent = 'Loading...';
+      try {
+        const res = await fetch('http://localhost:3002/api/message');
+        const data = await res.json();
+        output.textContent = data.message;
+      } catch (err) {
+        output.textContent = 'Error: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
