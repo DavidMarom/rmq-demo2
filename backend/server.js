@@ -48,7 +48,11 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.get('/api/message', async (req, res) => {
   const event = {
     type: 'message.requested',
-    message: 'Hello from the backend!',
+    message: [
+      { id: 1, title: 'Dune', author: 'Frank Herbert', year: 1965 },
+      { id: 2, title: '1984', author: 'George Orwell', year: 1949 },
+      { id: 3, title: 'The Hobbit', author: 'J.R.R. Tolkien', year: 1937 },
+    ],
     requestedAt: new Date().toISOString(),
   };
 

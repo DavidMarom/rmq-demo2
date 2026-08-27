@@ -18,7 +18,14 @@
       try {
         const res = await fetch('/api/message');
         const data = await res.json();
-        output.textContent = data.message;
+        output.innerHTML = '';
+        const list = document.createElement('ul');
+        for (const book of data.message) {
+          const item = document.createElement('li');
+          item.textContent = `${book.title} — ${book.author} (${book.year})`;
+          list.appendChild(item);
+        }
+        output.appendChild(list);
       } catch (err) {
         output.textContent = 'Error: ' + err.message;
       }
