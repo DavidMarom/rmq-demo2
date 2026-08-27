@@ -16,7 +16,7 @@
     button.addEventListener('click', async () => {
       output.textContent = 'Loading...';
       try {
-        const res = await fetch('http://localhost:3002/api/message');
+        const res = await fetch('/api/message');
         const data = await res.json();
         output.textContent = data.message;
       } catch (err) {

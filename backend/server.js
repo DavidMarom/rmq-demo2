@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const path = require('path');
 const express = require('express');
 const amqp = require('amqplib');
 
@@ -41,6 +42,8 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 });
+
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 app.get('/api/message', async (req, res) => {
   const event = {

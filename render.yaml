@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: rmq-demo2
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: RABBITMQ_URL
+        sync: false
