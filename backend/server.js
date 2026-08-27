@@ -1,17 +1,99 @@
+require('dotenv').config();
+
 const express = require('express');
+const amqp = require('amqplib');
 
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost';
+const TOPIC_EXCHANGE = 'demo.topic';
+const ROUTING_KEY = 'demo.message.requested';
+
+let channelPromise;
+
+async function getRabbitChannel() {
+  if (!channelPromise) {
+    channelPromise = amqp.connect(RABBITMQ_URL)
+      .then(async (connection) => {
+        connection.on('error', (err) => {
+          console.error('RabbitMQ connection error:', err.message);
+        });
+
+        connection.on('close', () => {
+          console.warn('RabbitMQ connection closed');
+          channelPromise = undefined;
+        });
+
+        const channel = await connection.createChannel();
+        await channel.assertExchange(TOPIC_EXCHANGE, 'topic', { durable: true });
+        return channel;
+      })
+      .catch((err) => {
+        channelPromise = undefined;
+        throw err;
+      });
+  }
+
+  return channelPromise;
+}
 
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 });
 
-app.get('/api/message', (req, res) => {
-  res.json({ message: 'Hello from the backend!' });
+app.get('/api/message', async (req, res) => {
+  const event = {
+    type: 'message.requested',
+    message: 'Hello from the backend!',
+    requestedAt: new Date().toISOString(),
+  };
+
+  try {
+    const channel = await getRabbitChannel();
+    channel.publish(
+      TOPIC_EXCHANGE,
+      ROUTING_KEY,
+      Buffer.from(JSON.stringify(event)),
+      {
+        contentType: 'application/json',
+        persistent: true,
+      },
+    );
+
+    res.json({
+      message: event.message,
+      rabbitmq: {
+        exchange: TOPIC_EXCHANGE,
+        exchangeType: 'topic',
+        routingKey: ROUTING_KEY,
+        published: true,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to publish RabbitMQ message:', err.message);
+    res.status(503).json({
+      message: 'RabbitMQ is unavailable. Is it running?',
+      rabbitmq: {
+        exchange: TOPIC_EXCHANGE,
+        exchangeType: 'topic',
+        routingKey: ROUTING_KEY,
+        published: false,
+      },
+    });
+  }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use.`);
+    console.error(`Stop the existing backend or start this one with another port, for example: PORT=3012 npm start`);
+    process.exit(1);
+  }
+
+  throw err;
 });
